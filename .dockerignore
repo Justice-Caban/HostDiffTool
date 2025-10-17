@@ -1,0 +1,26 @@
+# Git version control
+.git
+.gitignore
+
+# Node.js dependencies
+frontend/node_modules
+node_modules
+npm-debug.log
+
+# Docker files
+Dockerfile.backend
+Dockerfile.frontend
+docker-compose.yml
+.dockerignore
+
+# Local data and build artifacts
+/data
+/build
+
+# Project documentation
+projectDescription.md
+ARCHITECTURE.md
+
+# IDE settings
+.vscode
+.idea
