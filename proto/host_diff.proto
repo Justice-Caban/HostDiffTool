@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package hostdiff;
+
+option go_package = "github.com/justicecaban/host-diff-tool/proto";
+
+// HostService defines the main gRPC service for the application.
+service HostService {
+  // Uploads a snapshot file. The client sends a stream of bytes.
+  rpc UploadSnapshot(UploadSnapshotRequest) returns (UploadSnapshotResponse);
+
+  // Retrieves the history of snapshots for a given IP address.
+  rpc GetHostHistory(GetHostHistoryRequest) returns (GetHostHistoryResponse);
+
+  // Compares two snapshots and returns a structured diff report.
+  rpc CompareSnapshots(CompareSnapshotsRequest) returns (CompareSnapshotsResponse);
+}
+
+// --- Message Definitions ---
+
+// SnapshotInfo contains the metadata for a single snapshot.
+message SnapshotInfo {
+  string id = 1;
+  string ip_address = 2;
+  string timestamp = 3;
+}
+
+// UploadSnapshot: Allows uploading a snapshot JSON file.
+message UploadSnapshotRequest {
+  // The raw content of the JSON file.
+  bytes file_content = 1;
+  // The original filename, used to extract metadata if needed.
+  string filename = 2;
+}
+
+message UploadSnapshotResponse {
+  // The ID of the newly created snapshot record.
+  string id = 1;
+  // The IP address associated with the snapshot.
+  string ip_address = 2;
+  // The timestamp of the snapshot.
+  string timestamp = 3;
+}
+
+// GetHostHistory: Retrieves all snapshots for a specific host.
+message GetHostHistoryRequest {
+  string ip_address = 1;
+}
+
+message GetHostHistoryResponse {
+  repeated SnapshotInfo snapshots = 1;
+}
+
+// CompareSnapshots: Requests a comparison between two snapshots.
+message CompareSnapshotsRequest {
+  string snapshot_id_a = 1;
+  string snapshot_id_b = 2;
+}
+
+// DiffReport contains the structured differences between two snapshots.
+message DiffReport {
+  // This will be expanded with structured fields for ports, services, CVEs, etc.
+  // For now, we'll use a simple text representation.
+  string summary = 1;
+  OSChange os_changes = 2;
+  repeated PortChange added_ports = 3;
+  repeated PortChange removed_ports = 4;
+  repeated PortChange changed_ports = 5;
+  repeated ServiceChange added_services = 6;
+  repeated ServiceChange removed_services = 7;
+  repeated ServiceChange changed_services = 8;
+  repeated CVEChange added_cves = 9;
+  repeated CVEChange removed_cves = 10;
+}
+
+message PortChange {
+  int32 port = 1;
+  string protocol = 2;
+  string old_state = 3;
+  string new_state = 4;
+  string old_service = 5;
+  string new_service = 6;
+  map<string, string> changes = 7;
+}
+
+message ServiceChange {
+  string name = 1;
+  string old_version = 2;
+  string new_version = 3;
+  map<string, string> changes = 4;
+}
+
+message CVEChange {
+  string cve_id = 1;
+}
+
+message OSChange {
+  string oldname = 1;
+  string newname = 2;
+}
+
+message CompareSnapshotsResponse {
+  DiffReport report = 1;
+}
