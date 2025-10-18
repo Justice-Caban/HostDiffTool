@@ -1,0 +1,265 @@
+/* Git-diff style visualization */
+.diff-viewer {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  background-color: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 20px 0;
+  text-align: left;
+}
+
+/* Header section (mimics git diff header) */
+.diff-header {
+  background-color: #161b22;
+  padding: 12px 16px;
+  border-bottom: 1px solid #30363d;
+  color: #8b949e;
+  font-weight: 600;
+}
+
+.diff-file-header {
+  color: #c9d1d9;
+  margin-bottom: 4px;
+}
+
+.diff-index {
+  color: #8b949e;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.diff-file-path {
+  color: #8b949e;
+  margin: 2px 0;
+  font-size: 12px;
+}
+
+/* Content section */
+.diff-content {
+  background-color: #0d1117;
+}
+
+.diff-section {
+  margin: 0;
+}
+
+/* Hunk headers (section headers) */
+.diff-hunk-header {
+  background-color: #1c2128;
+  color: #8b949e;
+  padding: 8px 16px;
+  border-top: 1px solid #30363d;
+  border-bottom: 1px solid #30363d;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Individual diff lines */
+.diff-line {
+  display: flex;
+  padding: 2px 0;
+  margin: 0;
+  border-left: 3px solid transparent;
+}
+
+.diff-line-prefix {
+  display: inline-block;
+  width: 40px;
+  text-align: center;
+  font-weight: bold;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.diff-line-content {
+  flex: 1;
+  padding-right: 16px;
+  word-break: break-word;
+}
+
+/* Removed lines (red) */
+.diff-line-removed {
+  background-color: rgba(248, 81, 73, 0.15);
+  border-left-color: #f85149;
+}
+
+.diff-line-removed .diff-line-prefix {
+  color: #f85149;
+  background-color: rgba(248, 81, 73, 0.1);
+}
+
+.diff-line-removed .diff-line-content {
+  color: #ffa198;
+}
+
+/* Added lines (green) */
+.diff-line-added {
+  background-color: rgba(46, 160, 67, 0.15);
+  border-left-color: #3fb950;
+}
+
+.diff-line-added .diff-line-prefix {
+  color: #3fb950;
+  background-color: rgba(46, 160, 67, 0.1);
+}
+
+.diff-line-added .diff-line-content {
+  color: #7ee787;
+}
+
+/* Context lines (unchanged) */
+.diff-line-context {
+  background-color: #0d1117;
+  color: #c9d1d9;
+  border-left-color: #30363d;
+}
+
+.diff-line-context .diff-line-prefix {
+  color: #6e7681;
+  background-color: #0d1117;
+}
+
+.diff-line-context .diff-line-content {
+  color: #c9d1d9;
+  font-weight: 600;
+}
+
+/* Change groups (for modified services) */
+.diff-change-group {
+  margin: 8px 0;
+}
+
+.diff-change-detail {
+  margin-left: 20px;
+}
+
+/* Footer with statistics */
+.diff-footer {
+  background-color: #161b22;
+  padding: 12px 16px;
+  border-top: 1px solid #30363d;
+  color: #8b949e;
+  font-size: 12px;
+}
+
+.diff-stats {
+  display: flex;
+  gap: 16px;
+  font-weight: 600;
+}
+
+.diff-stat-added {
+  color: #3fb950;
+}
+
+.diff-stat-removed {
+  color: #f85149;
+}
+
+.diff-stat-changed {
+  color: #d29922;
+}
+
+/* Empty state */
+.diff-empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: #8b949e;
+  font-style: italic;
+}
+
+/* Hover effects */
+.diff-line:hover {
+  background-color: rgba(177, 186, 196, 0.04);
+}
+
+.diff-line-removed:hover {
+  background-color: rgba(248, 81, 73, 0.2);
+}
+
+.diff-line-added:hover {
+  background-color: rgba(46, 160, 67, 0.2);
+}
+
+/* Scrolling for long diffs */
+.diff-content {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* Scrollbar styling for dark theme */
+.diff-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.diff-content::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+
+.diff-content::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 5px;
+}
+
+.diff-content::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .diff-viewer {
+    font-size: 11px;
+  }
+
+  .diff-line-prefix {
+    width: 30px;
+  }
+
+  .diff-header,
+  .diff-footer {
+    padding: 8px 12px;
+  }
+
+  .diff-stats {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .diff-viewer {
+    border: 1px solid #ccc;
+  }
+
+  .diff-line-removed {
+    background-color: #ffebe9;
+    border-left-color: #d73a4a;
+  }
+
+  .diff-line-added {
+    background-color: #dcffe4;
+    border-left-color: #28a745;
+  }
+
+  .diff-line-removed .diff-line-content {
+    color: #d73a4a;
+  }
+
+  .diff-line-added .diff-line-content {
+    color: #28a745;
+  }
+
+  .diff-header,
+  .diff-footer {
+    background-color: #f6f8fa;
+    color: #24292e;
+  }
+
+  .diff-content {
+    max-height: none;
+  }
+}
