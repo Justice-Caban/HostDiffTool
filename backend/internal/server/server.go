@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"regexp"
 
 	"github.com/justicecaban/host-diff-tool/backend/internal/data"
 	"github.com/justicecaban/host-diff-tool/backend/internal/diff"
+	"github.com/justicecaban/host-diff-tool/backend/internal/validation"
 	"github.com/justicecaban/host-diff-tool/proto"
 )
 
@@ -25,7 +25,7 @@ func NewServer(db *data.DB) *Server {
 
 // UploadSnapshot handles the UploadSnapshot RPC.
 func (s *Server) UploadSnapshot(ctx context.Context, req *proto.UploadSnapshotRequest) (*proto.UploadSnapshotResponse, error) {
-	ipAddress, timestamp, err := parseFilename(req.GetFilename())
+	parsed, err := validation.ParseFilename(req.GetFilename())
 	if err != nil {
 		log.Printf("UploadSnapshot error: %v", err)
 		return nil, fmt.Errorf("invalid filename: %w", err)
@@ -38,7 +38,7 @@ func (s *Server) UploadSnapshot(ctx context.Context, req *proto.UploadSnapshotRe
 		return nil, fmt.Errorf("invalid JSON content: %w", err)
 	}
 
-	id, err := s.db.InsertSnapshot(ipAddress, timestamp, req.GetFileContent())
+	id, err := s.db.InsertSnapshot(parsed.IPAddress, parsed.Timestamp, req.GetFileContent())
 	if err != nil {
 		log.Printf("UploadSnapshot error: %v", err)
 		return nil, fmt.Errorf("failed to insert snapshot: %w", err)
@@ -46,8 +46,8 @@ func (s *Server) UploadSnapshot(ctx context.Context, req *proto.UploadSnapshotRe
 
 	return &proto.UploadSnapshotResponse{
 		Id:        id,
-		IpAddress: ipAddress,
-		Timestamp: timestamp,
+		IpAddress: parsed.IPAddress,
+		Timestamp: parsed.Timestamp,
 	}, nil
 }
 
@@ -141,56 +141,4 @@ func (s *Server) CompareSnapshots(ctx context.Context, req *proto.CompareSnapsho
 	return &proto.CompareSnapshotsResponse{
 		Report: protoReport,
 	}, nil
-}
-
-// parseFilename extracts IP address and timestamp from a filename like "host_127.0.0.1_2025-10-16T12-00-00Z.json"
-func parseFilename(filename string) (ipAddress, timestamp string, err error) {
-	re := regexp.MustCompile(`host_([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})_([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}Z)\.json`)
-	matches := re.FindStringSubmatch(filename)
-
-	if len(matches) != 3 {
-		return "", "", fmt.Errorf("filename does not match expected format: %s", filename)
-	}
-
-	// Validate IP address octets (0-255)
-	ip := matches[1]
-	var octets [4]int
-	if _, err := fmt.Sscanf(ip, "%d.%d.%d.%d", &octets[0], &octets[1], &octets[2], &octets[3]); err != nil {
-		return "", "", fmt.Errorf("invalid IP address format: %s", ip)
-	}
-	for i, octet := range octets {
-		if octet < 0 || octet > 255 {
-			return "", "", fmt.Errorf("invalid IP address octet [%d]: %d (must be 0-255)", i, octet)
-		}
-	}
-
-	// Validate timestamp date components
-	timestampStr := matches[2]
-	var year, month, day, hour, minute, second int
-	if _, err := fmt.Sscanf(timestampStr, "%04d-%02d-%02dT%02d-%02d-%02dZ",
-		&year, &month, &day, &hour, &minute, &second); err != nil {
-		return "", "", fmt.Errorf("invalid timestamp format: %s", timestampStr)
-	}
-
-	// Basic validation of date/time ranges
-	if month < 1 || month > 12 {
-		return "", "", fmt.Errorf("invalid month: %d (must be 1-12)", month)
-	}
-	if day < 1 || day > 31 {
-		return "", "", fmt.Errorf("invalid day: %d (must be 1-31)", day)
-	}
-	if hour < 0 || hour > 23 {
-		return "", "", fmt.Errorf("invalid hour: %d (must be 0-23)", hour)
-	}
-	if minute < 0 || minute > 59 {
-		return "", "", fmt.Errorf("invalid minute: %d (must be 0-59)", minute)
-	}
-	if second < 0 || second > 59 {
-		return "", "", fmt.Errorf("invalid second: %d (must be 0-59)", second)
-	}
-
-	// Replace dashes in timestamp with colons for ISO-8601 compliance
-	timestamp = timestampStr[:13] + ":" + timestampStr[14:16] + ":" + timestampStr[17:]
-
-	return ip, timestamp, nil
 }

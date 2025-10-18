@@ -368,10 +368,14 @@ sqlite3 data/snapshots.db "PRAGMA integrity_check;"
 
 # 4. If repair fails, start fresh
 rm -f data/snapshots.db
+rm -f data/snapshots.db-wal
+rm -f data/snapshots.db-shm
 
 # 5. Restart
 docker compose up -d
 ```
+
+**Note:** The database now uses WAL (Write-Ahead Logging) mode for better performance and concurrency. This creates additional files (-wal and -shm) which are normal.
 
 ### Problem: Can't find database file
 
@@ -421,9 +425,29 @@ host_<ip>_<timestamp>.json
 - ❌ `192.0.2.1_2025-10-17.json`
 
 **Validation rules:**
-- IP address: Valid IPv4 (0-255 per octet)
-- Timestamp: ISO-8601 format, use dashes not colons
-- Extension: Must be `.json`
+- **IP address**: Valid IPv4 (0-255 per octet)
+- **Timestamp**: ISO-8601 format, use dashes not colons in the time portion
+- **Extension**: Must be `.json`
+
+**Common errors:**
+
+1. **Invalid IP octet:**
+   ```
+   Error: invalid IP address octet [0]: 256 (must be 0-255)
+   ```
+   Fix: Ensure all IP octets are between 0-255
+
+2. **Invalid timestamp:**
+   ```
+   Error: invalid month: 13 (must be 1-12)
+   ```
+   Fix: Use valid month (1-12), day (1-31), hour (0-23), minute/second (0-59)
+
+3. **Wrong filename format:**
+   ```
+   Error: filename does not match expected format 'host_<ip>_<timestamp>.json'
+   ```
+   Fix: Must start with `host_`, include valid IP and timestamp
 
 ### Problem: "invalid JSON content" error
 
@@ -751,33 +775,130 @@ docker compose ps
 curl http://localhost
 ```
 
+## Performance Troubleshooting
+
+### Problem: Database is slow after many operations
+
+**Symptoms:**
+- Queries taking longer than usual
+- Large database file size
+
+**Solution - Run database maintenance:**
+```bash
+docker exec -it takehomeassessment-backend-1 sh
+sqlite3 /app/data/snapshots.db
+
+-- Check database size and fragmentation
+.dbinfo
+
+-- Optimize database (reclaim space)
+VACUUM;
+
+-- Update query planner statistics
+ANALYZE;
+
+-- Check that WAL mode is enabled
+PRAGMA journal_mode;
+-- Should return: wal
+
+-- Check cache size
+PRAGMA cache_size;
+-- Should return: -64000 (64MB)
+
+.exit
+exit
+```
+
+**Check database files:**
+```bash
+ls -lh data/
+# You should see:
+# snapshots.db      (main database)
+# snapshots.db-wal  (write-ahead log - normal with WAL mode)
+# snapshots.db-shm  (shared memory - normal with WAL mode)
+```
+
+### Problem: Frontend loads slowly
+
+**Check if it's a caching issue:**
+```bash
+# Clear browser cache
+# Chrome/Firefox: Ctrl+Shift+Delete
+
+# Verify frontend build size
+docker exec takehomeassessment-frontend-1 ls -lh /usr/share/nginx/html/
+
+# Rebuild frontend with optimizations
+docker compose build --no-cache frontend
+docker compose up -d frontend nginx
+```
+
+## Recent Updates & New Features
+
+### October 2025 - Performance & Validation Improvements
+
+**Database optimizations:**
+- ✅ Enabled WAL (Write-Ahead Logging) mode for better concurrency
+- ✅ Configured 64MB cache for faster queries
+- ✅ Added connection pooling to prevent lock contention
+- ✅ Memory-mapped I/O for large datasets
+- ✅ Indexed queries on (ip_address, timestamp)
+
+**Input validation enhancements:**
+- ✅ Extracted validation into dedicated package
+- ✅ Comprehensive IP address validation (octets 0-255)
+- ✅ Timestamp validation with detailed error messages
+- ✅ 13 new validation tests for edge cases
+
+**Service comparison fix:**
+- ✅ Fixed bug: Services now identified by port+protocol (was port-only)
+- ✅ Correctly handles multiple protocols on same port
+- ✅ More accurate diff reports
+
+**Type safety improvements:**
+- ✅ Removed all `any` types from frontend
+- ✅ Added proper TypeScript interfaces
+- ✅ Better compile-time error detection
+
 ### Still Having Issues?
 
-1. **Check documentation:**
-   - [README.md](./README.md) - Getting started
-   - [TESTING.md](./TESTING.md) - Testing guide
-   - [ARCHITECTURE.md](./ARCHITECTURE.md) - Technical details
-
-2. **Review test reports:**
-   - [FINAL_E2E_TEST_REPORT.md](./FINAL_E2E_TEST_REPORT.md)
-   - [EDGE_CASE_TESTING_SUMMARY.md](./EDGE_CASE_TESTING_SUMMARY.md)
-
-3. **Enable debug logging:**
+1. **Gather debug information:**
    ```bash
-   # Backend with verbose logging
-   docker compose down
-   # Edit backend code to enable debug logs
-   docker compose up --build
+   # System info
+   uname -a
+   docker --version
+   docker compose version
+
+   # Service status
+   docker compose ps
+
+   # Logs
+   docker compose logs --tail=100 > logs.txt
    ```
+
+2. **Enable verbose logging:**
+   ```bash
+   # Backend tests with verbose output
+   cd backend
+   go test -v ./...
+
+   # E2E tests with debug mode
+   ./e2e_test.sh  # Check script output
+   ```
+
+3. **Check known issues:**
+   - WAL mode files (-wal, -shm) are normal, not errors
+   - UNIQUE constraint errors are expected for duplicate uploads
+   - Protocol changes now show as removed+added (correct behavior)
 
 4. **File an issue:**
    - Include system information
-   - Attach logs
+   - Attach logs from docker compose logs
    - Describe steps to reproduce
    - Expected vs actual behavior
 
 ---
 
 **Last Updated:** October 2025
-**Covers:** Common issues and solutions
+**Covers:** Common issues, performance tuning, recent improvements
 **Status:** Comprehensive troubleshooting guide ✅

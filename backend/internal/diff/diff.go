@@ -89,19 +89,22 @@ func DiffSnapshots(snapshotA, snapshotB []byte) (*DiffReport, error) {
 }
 
 func compareServices(servicesA, servicesB []ServiceInfo, report *DiffReport) {
-	// Create maps keyed by port for easier comparison
-	mapA := make(map[int]ServiceInfo)
+	// Create maps keyed by port+protocol for easier comparison
+	// This ensures services on the same port but different protocols are tracked separately
+	mapA := make(map[string]ServiceInfo)
 	for _, s := range servicesA {
-		mapA[s.Port] = s
+		key := fmt.Sprintf("%d-%s", s.Port, s.Protocol)
+		mapA[key] = s
 	}
-	mapB := make(map[int]ServiceInfo)
+	mapB := make(map[string]ServiceInfo)
 	for _, s := range servicesB {
-		mapB[s.Port] = s
+		key := fmt.Sprintf("%d-%s", s.Port, s.Protocol)
+		mapB[key] = s
 	}
 
 	// Check for removed or changed services
-	for port, sA := range mapA {
-		if sB, ok := mapB[port]; ok {
+	for key, sA := range mapA {
+		if sB, ok := mapB[key]; ok {
 			// Service exists in both, check for changes
 			changes := make(map[string]string)
 
@@ -143,7 +146,7 @@ func compareServices(servicesA, servicesB []ServiceInfo, report *DiffReport) {
 
 			if len(changes) > 0 {
 				report.ChangedServices = append(report.ChangedServices, ServiceChange{
-					Port:     port,
+					Port:     sA.Port,
 					Protocol: sB.Protocol,
 					Changes:  changes,
 				})
@@ -155,8 +158,8 @@ func compareServices(servicesA, servicesB []ServiceInfo, report *DiffReport) {
 	}
 
 	// Check for added services
-	for port, sB := range mapB {
-		if _, ok := mapA[port]; !ok {
+	for key, sB := range mapB {
+		if _, ok := mapA[key]; !ok {
 			// Service added
 			report.AddedServices = append(report.AddedServices, sB)
 		}

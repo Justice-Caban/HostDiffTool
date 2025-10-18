@@ -190,6 +190,8 @@ func TestDiffSnapshots_SameCVEMultiplePorts(t *testing.T) {
 }
 
 // Edge Case 9: Protocol change on same port
+// Note: A protocol change is treated as removing one service and adding another,
+// since port+protocol together define a unique service.
 func TestDiffSnapshots_ProtocolChange(t *testing.T) {
 	snapshotA := []byte(`{
 		"ip": "127.0.0.1",
@@ -205,12 +207,19 @@ func TestDiffSnapshots_ProtocolChange(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	if len(report.ChangedServices) != 1 {
-		t.Errorf("Expected 1 changed service for protocol change, got %d", len(report.ChangedServices))
+	// Protocol changes are treated as removal + addition since they're different services
+	if len(report.RemovedServices) != 1 {
+		t.Errorf("Expected 1 removed service (HTTP), got %d", len(report.RemovedServices))
+	}
+	if len(report.AddedServices) != 1 {
+		t.Errorf("Expected 1 added service (HTTPS), got %d", len(report.AddedServices))
 	}
 
-	if _, ok := report.ChangedServices[0].Changes["protocol"]; !ok {
-		t.Error("Expected protocol change to be detected")
+	if report.RemovedServices[0].Protocol != "HTTP" {
+		t.Errorf("Expected removed service to be HTTP, got %s", report.RemovedServices[0].Protocol)
+	}
+	if report.AddedServices[0].Protocol != "HTTPS" {
+		t.Errorf("Expected added service to be HTTPS, got %s", report.AddedServices[0].Protocol)
 	}
 }
 
@@ -402,6 +411,7 @@ func TestDiffSnapshots_CompletelyDifferent(t *testing.T) {
 }
 
 // Edge Case 16: Empty string values
+// Note: Empty protocol vs non-empty protocol are treated as different services
 func TestDiffSnapshots_EmptyStringValues(t *testing.T) {
 	snapshotA := []byte(`{
 		"ip": "127.0.0.1",
@@ -421,8 +431,12 @@ func TestDiffSnapshots_EmptyStringValues(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	if len(report.ChangedServices) != 1 {
-		t.Error("Expected changes from empty strings to values")
+	// Empty protocol vs non-empty protocol are treated as different services
+	if len(report.RemovedServices) != 1 {
+		t.Errorf("Expected 1 removed service (empty protocol), got %d", len(report.RemovedServices))
+	}
+	if len(report.AddedServices) != 1 {
+		t.Errorf("Expected 1 added service (HTTP protocol), got %d", len(report.AddedServices))
 	}
 }
 

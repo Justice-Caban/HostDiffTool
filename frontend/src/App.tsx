@@ -4,15 +4,45 @@ import { HostServiceClient } from './proto/Host_diffServiceClientPb';
 import { UploadSnapshotRequest, GetHostHistoryRequest, CompareSnapshotsRequest } from './proto/host_diff_pb';
 import DiffViewer from './DiffViewer';
 
+// Type definitions for better type safety
+interface SnapshotInfo {
+  id: string;
+  ipAddress: string;
+  timestamp: string;
+}
+
+// Match the proto PortChange.AsObject type
+interface PortChange {
+  port: number;
+  protocol: string;
+  oldState: string;
+  newState: string;
+  oldService: string;
+  newService: string;
+  changesMap: Array<[string, string]>;
+}
+
+interface CVEChange {
+  cveId: string;
+}
+
+interface DiffReport {
+  addedPortsList: PortChange[];
+  removedPortsList: PortChange[];
+  changedPortsList: PortChange[];
+  addedCvesList: CVEChange[];
+  removedCvesList: CVEChange[];
+}
+
 const client = new HostServiceClient('http://localhost');
 
 function App() {
-  const [ipAddress, setIpAddress] = useState('');
-  const [hostHistory, setHostHistory] = useState<any[]>([]);
+  const [ipAddress, setIpAddress] = useState<string>('');
+  const [hostHistory, setHostHistory] = useState<SnapshotInfo[]>([]);
   const [selectedSnapshots, setSelectedSnapshots] = useState<string[]>([]);
-  const [result, setResult] = useState('');
-  const [diffReport, setDiffReport] = useState<any>(null);
-  const [showDiffViewer, setShowDiffViewer] = useState(false);
+  const [result, setResult] = useState<string>('');
+  const [diffReport, setDiffReport] = useState<DiffReport | null>(null);
+  const [showDiffViewer, setShowDiffViewer] = useState<boolean>(false);
 
   const handleUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -87,16 +117,10 @@ function App() {
         const report = response.getReport();
         if (report) {
           // Convert proto report to format expected by DiffViewer
-          const formattedReport = {
-            addedServicesList: report.getAddedServicesList().map(s => s.toObject()),
-            removedServicesList: report.getRemovedServicesList().map(s => s.toObject()),
-            changedServicesList: report.getChangedServicesList().map(c => {
-              const obj = c.toObject();
-              return {
-                ...obj,
-                changesMap: Object.entries(obj.changesMap || {})
-              };
-            }),
+          const formattedReport: DiffReport = {
+            addedPortsList: report.getAddedPortsList().map(p => p.toObject()),
+            removedPortsList: report.getRemovedPortsList().map(p => p.toObject()),
+            changedPortsList: report.getChangedPortsList().map(p => p.toObject()),
             addedCvesList: report.getAddedCvesList().map(c => c.toObject()),
             removedCvesList: report.getRemovedCvesList().map(c => c.toObject())
           };
@@ -172,33 +196,3 @@ function App() {
 }
 
 export default App;
-
-export function getAddedservicesList() {
-  throw new Error('Function not implemented.');
-}
-
-
-export function getRemovedservicesList() {
-  throw new Error('Function not implemented.');
-}
-
-
-export function getChangedservicesList() {
-  throw new Error('Function not implemented.');
-}
-
-
-export function getAddedcvesList() {
-  throw new Error('Function not implemented.');
-}
-
-
-export function getRemovedcvesList() {
-  throw new Error('Function not implemented.');
-}
-
-
-export function getChangesMap() {
-  throw new Error('Function not implemented.');
-}
-

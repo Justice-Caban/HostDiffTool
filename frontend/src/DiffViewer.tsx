@@ -1,39 +1,25 @@
 import React from 'react';
 import './DiffViewer.css';
 
-interface ServiceInfo {
+// Match the proto PortChange.AsObject type
+interface PortChange {
   port: number;
   protocol: string;
-  status?: number;
-  software?: {
-    vendor?: string;
-    product?: string;
-    version?: string;
-  };
-  tls?: {
-    version?: string;
-    cipher?: string;
-    certFingerprintSha256?: string;
-  };
-  vulnerabilities?: string[];
-}
-
-interface ServiceChange {
-  port: number;
-  protocol: string;
+  oldState: string;
+  newState: string;
+  oldService: string;
+  newService: string;
   changesMap: Array<[string, string]>;
 }
 
 interface CVEChange {
   cveId: string;
-  port: number;
-  protocol: string;
 }
 
 interface DiffReport {
-  addedServicesList: ServiceInfo[];
-  removedServicesList: ServiceInfo[];
-  changedServicesList: ServiceChange[];
+  addedPortsList: PortChange[];
+  removedPortsList: PortChange[];
+  changedPortsList: PortChange[];
   addedCvesList: CVEChange[];
   removedCvesList: CVEChange[];
 }
@@ -54,9 +40,9 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ report, snapshotIdA, snapshotId
   }
 
   const hasChanges =
-    report.addedServicesList.length > 0 ||
-    report.removedServicesList.length > 0 ||
-    report.changedServicesList.length > 0 ||
+    report.addedPortsList.length > 0 ||
+    report.removedPortsList.length > 0 ||
+    report.changedPortsList.length > 0 ||
     report.addedCvesList.length > 0 ||
     report.removedCvesList.length > 0;
 
@@ -76,29 +62,8 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ report, snapshotIdA, snapshotId
     );
   }
 
-  const formatService = (service: ServiceInfo): string => {
-    let result = `Port ${service.port} (${service.protocol})`;
-
-    if (service.status) {
-      result += ` [Status: ${service.status}]`;
-    }
-
-    if (service.software?.product) {
-      result += ` - ${service.software.vendor || ''}${service.software.vendor ? '/' : ''}${service.software.product}`;
-      if (service.software.version) {
-        result += ` v${service.software.version}`;
-      }
-    }
-
-    if (service.tls) {
-      result += ` [TLS: ${service.tls.version || 'unknown'}]`;
-    }
-
-    if (service.vulnerabilities && service.vulnerabilities.length > 0) {
-      result += ` [${service.vulnerabilities.length} CVE${service.vulnerabilities.length > 1 ? 's' : ''}]`;
-    }
-
-    return result;
+  const formatPort = (portChange: PortChange): string => {
+    return `Port ${portChange.port} (${portChange.protocol})`;
   };
 
   return (
@@ -119,43 +84,43 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ report, snapshotIdA, snapshotId
       </div>
 
       <div className="diff-content">
-        {/* Removed Services */}
-        {report.removedServicesList.length > 0 && (
+        {/* Removed Ports */}
+        {report.removedPortsList.length > 0 && (
           <div className="diff-section">
             <div className="diff-hunk-header">
-              @@ Removed Services ({report.removedServicesList.length}) @@
+              @@ Removed Ports ({report.removedPortsList.length}) @@
             </div>
-            {report.removedServicesList.map((service, index) => (
+            {report.removedPortsList.map((port, index) => (
               <div key={`removed-${index}`} className="diff-line diff-line-removed">
                 <span className="diff-line-prefix">-</span>
-                <span className="diff-line-content">{formatService(service)}</span>
+                <span className="diff-line-content">{formatPort(port)}</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* Added Services */}
-        {report.addedServicesList.length > 0 && (
+        {/* Added Ports */}
+        {report.addedPortsList.length > 0 && (
           <div className="diff-section">
             <div className="diff-hunk-header">
-              @@ Added Services ({report.addedServicesList.length}) @@
+              @@ Added Ports ({report.addedPortsList.length}) @@
             </div>
-            {report.addedServicesList.map((service, index) => (
+            {report.addedPortsList.map((port, index) => (
               <div key={`added-${index}`} className="diff-line diff-line-added">
                 <span className="diff-line-prefix">+</span>
-                <span className="diff-line-content">{formatService(service)}</span>
+                <span className="diff-line-content">{formatPort(port)}</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* Changed Services */}
-        {report.changedServicesList.length > 0 && (
+        {/* Changed Ports */}
+        {report.changedPortsList.length > 0 && (
           <div className="diff-section">
             <div className="diff-hunk-header">
-              @@ Modified Services ({report.changedServicesList.length}) @@
+              @@ Modified Ports ({report.changedPortsList.length}) @@
             </div>
-            {report.changedServicesList.map((change, index) => (
+            {report.changedPortsList.map((change, index) => (
               <div key={`changed-${index}`} className="diff-change-group">
                 <div className="diff-line diff-line-context">
                   <span className="diff-line-prefix"> </span>
@@ -163,7 +128,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ report, snapshotIdA, snapshotId
                     Port {change.port} ({change.protocol}):
                   </span>
                 </div>
-                {change.changesMap.map(([key, value], changeIndex) => {
+                {change.changesMap && change.changesMap.map(([key, value], changeIndex) => {
                   const [oldValue, newValue] = value.includes(' -> ')
                     ? value.split(' -> ')
                     : ['', value];
@@ -202,7 +167,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ report, snapshotIdA, snapshotId
               <div key={`removed-cve-${index}`} className="diff-line diff-line-removed">
                 <span className="diff-line-prefix">-</span>
                 <span className="diff-line-content">
-                  {cve.cveId} on Port {cve.port} ({cve.protocol})
+                  {cve.cveId}
                 </span>
               </div>
             ))}
@@ -219,7 +184,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ report, snapshotIdA, snapshotId
               <div key={`added-cve-${index}`} className="diff-line diff-line-added">
                 <span className="diff-line-prefix">+</span>
                 <span className="diff-line-content">
-                  {cve.cveId} on Port {cve.port} ({cve.protocol})
+                  {cve.cveId}
                 </span>
               </div>
             ))}
@@ -230,15 +195,15 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ report, snapshotIdA, snapshotId
       <div className="diff-footer">
         <div className="diff-stats">
           <span className="diff-stat-added">
-            +{report.addedServicesList.length + report.addedCvesList.length} additions
+            +{report.addedPortsList.length + report.addedCvesList.length} additions
           </span>
           {' '}
           <span className="diff-stat-removed">
-            -{report.removedServicesList.length + report.removedCvesList.length} deletions
+            -{report.removedPortsList.length + report.removedCvesList.length} deletions
           </span>
           {' '}
           <span className="diff-stat-changed">
-            ~{report.changedServicesList.length} modifications
+            ~{report.changedPortsList.length} modifications
           </span>
         </div>
       </div>

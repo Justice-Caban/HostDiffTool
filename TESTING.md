@@ -18,13 +18,18 @@ The Host Diff Tool includes a comprehensive testing strategy with multiple layer
 
 | Test Layer | Count | Coverage | Execution Time |
 |------------|-------|----------|----------------|
-| **Unit Tests** | 49 | Backend logic, edge cases | ~1 second |
+| **Unit Tests** | 62 | Backend logic, edge cases, validation | ~1 second |
 | **Integration Tests** | 2 | Full stack E2E scenarios | ~10 seconds |
 | **Manual Tests** | ∞ | User workflows via UI | Variable |
 
-**Total Automated Tests:** 51
+**Total Automated Tests:** 64
 **Pass Rate:** 100%
 **Total Execution Time:** ~10 seconds
+
+**Recent Updates:**
+- Added validation package with 13 tests covering filename parsing and input validation
+- Fixed service comparison to properly identify services by port+protocol combination
+- Enhanced TypeScript type safety in frontend components
 
 ## Test Suite
 
@@ -47,8 +52,9 @@ The Host Diff Tool includes a comprehensive testing strategy with multiple layer
 
 ### Test Categories
 
-**1. Unit Tests (49 tests)**
+**1. Unit Tests (62 tests)**
 - **Data layer**: 3 tests (database operations)
+- **Validation layer**: 13 tests (NEW - filename parsing, IP validation, timestamp validation)
 - **Diff logic**: 29 tests
   - 9 core diff tests (basic functionality)
   - 20 edge case tests (boundary conditions)
@@ -175,10 +181,11 @@ go test ./...
 
 **Expected output:**
 ```
-?       github.com/justicecaban/host-diff-tool/backend/cmd/server      [no test files]
-ok      github.com/justicecaban/host-diff-tool/backend/internal/data   0.010s
-ok      github.com/justicecaban/host-diff-tool/backend/internal/diff   0.003s
-ok      github.com/justicecaban/host-diff-tool/backend/internal/server 0.012s
+?       github.com/justicecaban/host-diff-tool/backend/cmd/server           [no test files]
+ok      github.com/justicecaban/host-diff-tool/backend/internal/data        0.010s
+ok      github.com/justicecaban/host-diff-tool/backend/internal/diff        0.003s
+ok      github.com/justicecaban/host-diff-tool/backend/internal/server      0.012s
+ok      github.com/justicecaban/host-diff-tool/backend/internal/validation  0.002s
 ```
 
 **Run with verbose output:**
@@ -192,6 +199,9 @@ go test -v ./...
 # Data layer tests
 cd backend
 go test ./internal/data
+
+# Validation tests (NEW)
+go test ./internal/validation
 
 # Diff logic tests
 go test ./internal/diff
@@ -353,13 +363,29 @@ Total:  6
 
 #### Data Layer Tests (3)
 
-**File:** `backend/internal/data/data_test.go`
+**File:** `backend/internal/data/database_test.go`
 
 | Test | Purpose |
 |------|---------|
 | `TestNewDB` | Database initialization and table creation |
 | `TestInsertAndGetSnapshot` | CRUD operations functionality |
 | `TestGetSnapshotNotFound` | Error handling for missing records |
+
+#### Validation Layer Tests (13) - NEW
+
+**File:** `backend/internal/validation/filename_test.go`
+
+| Test | Purpose |
+|------|---------|
+| `TestParseFilename` | Comprehensive filename parsing (13 test cases) |
+| `TestValidateIPAddress` | IP address validation (6 test cases) |
+| `TestValidateAndNormalizeTimestamp` | Timestamp validation (9 test cases) |
+
+**Key validations:**
+- IP address octets must be 0-255
+- Timestamp must follow ISO-8601 format
+- Filename format: `host_<ip>_<timestamp>.json`
+- Edge cases: 0.0.0.0, 255.255.255.255, invalid months/days/hours
 
 #### Diff Logic Core Tests (9)
 
@@ -964,10 +990,52 @@ To create your own test snapshots:
 - **E2E Test Coverage:** All user workflows
 - **Edge Case Coverage:** All known edge cases
 
-**Current coverage:** 100% pass rate on 51 tests ✅
+**Current coverage:** 100% pass rate on 64 tests ✅
+
+## Recent Improvements
+
+### Validation Package (October 2025)
+
+Added dedicated input validation package with comprehensive test coverage:
+
+**Benefits:**
+- ✅ Separated concerns - validation logic extracted from server code
+- ✅ Reusable - validation functions can be used across the application
+- ✅ Well-tested - 13 test cases covering all edge cases
+- ✅ Maintainable - Clear, focused functions with single responsibilities
+
+**Test Coverage:**
+- IP validation: 6 test cases (valid IPs, boundary values, invalid octets)
+- Timestamp validation: 9 test cases (valid formats, invalid months/days/hours/minutes/seconds)
+- Filename parsing: 13 test cases (valid names, malformed inputs, edge cases)
+
+### Service Comparison Fix (October 2025)
+
+Fixed critical bug in service comparison algorithm:
+
+**Before:** Services identified by port only
+**After:** Services identified by port+protocol combination
+
+**Impact:**
+- ✅ Correctly handles multiple protocols on same port (e.g., HTTP and HTTPS on port 80)
+- ✅ More accurate diff reports
+- ✅ Updated 2 edge case tests to reflect correct behavior
+
+### Frontend Type Safety (October 2025)
+
+Enhanced TypeScript type safety:
+
+**Before:** Used `any` types for state management
+**After:** Proper interfaces for all data structures
+
+**Benefits:**
+- ✅ Compile-time error detection
+- ✅ Better IDE autocomplete and IntelliSense
+- ✅ Improved code maintainability
+- ✅ Self-documenting code
 
 ---
 
 **Last Updated:** October 2025
 **Test Frameworks:** Go testing, Puppeteer, grpcurl
-**Status:** All tests passing ✅
+**Status:** All 64 tests passing ✅
