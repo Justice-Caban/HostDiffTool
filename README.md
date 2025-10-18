@@ -1,6 +1,6 @@
 # Host Diff Tool
 
-A production-ready tool for tracking and comparing host configuration snapshots over time. Built with Go, React, and gRPC.
+A tool for tracking and comparing host configuration snapshots over time. Built with Go, React, and gRPC.
 
 ## Table of Contents
 
@@ -632,4 +632,4 @@ Built with:
 
 **Version:** 1.0.0
 **Last Updated:** October 2025
-**Status:** Production Ready ✅
+**Status:** Ready ✅
