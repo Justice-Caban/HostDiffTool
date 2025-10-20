@@ -21,10 +21,33 @@ type DB struct {
 }
 
 // NewDB initializes a new SQLite database connection and creates the necessary table.
+// Configures performance pragmas and connection pooling for optimal operation.
 func NewDB(dataSourceName string) (*DB, error) {
 	db, err := sql.Open("sqlite3", dataSourceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	// Configure connection pool
+	// For SQLite, we typically want a single writer connection
+	db.SetMaxOpenConns(1)       // Prevent database locked errors
+	db.SetMaxIdleConns(1)       // Keep one connection alive
+	db.SetConnMaxLifetime(0)    // Connections never expire
+
+	// Enable performance pragmas
+	pragmas := []string{
+		"PRAGMA journal_mode=WAL;",        // Write-Ahead Logging for better concurrency
+		"PRAGMA synchronous=NORMAL;",      // Balance between safety and speed
+		"PRAGMA cache_size=-64000;",       // 64MB cache (negative = KB)
+		"PRAGMA temp_store=MEMORY;",       // Use memory for temp tables
+		"PRAGMA mmap_size=268435456;",     // 256MB memory-mapped I/O
+		"PRAGMA busy_timeout=5000;",       // Wait up to 5 seconds on locks
+	}
+
+	for _, pragma := range pragmas {
+		if _, err := db.Exec(pragma); err != nil {
+			return nil, fmt.Errorf("failed to set pragma %s: %w", pragma, err)
+		}
 	}
 
 	// Create the snapshots table if it doesn't exist
@@ -33,13 +56,23 @@ func NewDB(dataSourceName string) (*DB, error) {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		ip_address TEXT NOT NULL,
 		timestamp TEXT NOT NULL,
-		data TEXT NOT NULL,
+		data BLOB NOT NULL,
 		UNIQUE(ip_address, timestamp)
 	);
 	`
 	_, err = db.Exec(schema)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create table: %w", err)
+	}
+
+	// Create index if it doesn't exist (for faster queries by IP)
+	indexSQL := `
+	CREATE INDEX IF NOT EXISTS idx_ip_timestamp
+	ON snapshots(ip_address, timestamp DESC);
+	`
+	_, err = db.Exec(indexSQL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create index: %w", err)
 	}
 
 	return &DB{db: db}, nil
