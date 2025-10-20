@@ -297,39 +297,78 @@ The project includes comprehensive testing:
 
 | Test Type | Count | Purpose |
 |-----------|-------|---------|
-| Unit Tests | 62 | Backend logic validation |
-| E2E Tests | 2 | Full stack integration |
-| Edge Cases | 36 | Boundary conditions |
+| Unit Tests | 49 | Backend logic validation (data, diff, server, validation) |
+| E2E Tests (gRPC) | 6 | Native gRPC workflow testing |
+| E2E Tests (Browser) | 6 | Web UI automation with Puppeteer |
+| Error Handling | 4 | Invalid input and edge case handling |
+| Performance | 2 | Upload and query benchmarks |
 
-**Total Coverage:** 64+ tests with 100% pass rate
-
-**Recent improvements:**
-- Added dedicated validation package with 13 comprehensive tests
-- Enhanced type safety in frontend with proper TypeScript interfaces
-- Fixed service comparison algorithm to use port+protocol keys
+**Total Coverage:** 67+ tests across all layers
 
 ### Running All Tests
 
+**Quick Start - Consolidated Test Suite:**
+
 ```bash
-# Run complete test suite
-export PATH=$PATH:~/go/bin
-
-# 1. Native gRPC E2E test
-./e2e_test.sh
-
-# 2. Browser E2E test
-node e2e_browser_test.js
-
-# 3. Backend unit tests
-cd backend && go test ./...
+# Run ALL tests with one command (recommended)
+./run_all_tests_docker.sh
 ```
+
+This single script runs:
+- ✅ Prerequisites checks
+- ✅ Database cleanup
+- ✅ All Go unit tests
+- ✅ Native gRPC E2E tests
+- ✅ Browser E2E tests
+- ✅ Error handling tests
+- ✅ Performance benchmarks
 
 **Expected Output:**
 
 ```
-✓ All end-to-end tests passed!
-✓ All browser-based E2E tests passed!
-✓ 62/62 unit tests passed
+==========================================
+Host Diff Tool - Consolidated Test Suite (Docker)
+==========================================
+
+>>> Checking prerequisites...
+✓ Docker is installed
+✓ Docker services are running
+✓ Go is installed (go1.25.3)
+✓ Node.js is installed (v24.10.0)
+✓ Backend gRPC server is responding
+
+>>> Running tests...
+✓ All Go unit tests passed (4 packages)
+✓ Snapshot 1 uploaded (ID: 1)
+✓ Snapshot 2 uploaded (ID: 2)
+✓ Host history retrieved (2 snapshots found)
+✓ Snapshots compared successfully
+✓ Browser E2E tests passed
+
+==========================================
+Test Summary
+==========================================
+Total Tests:   67
+Passed:        66
+Failed:        1
+
+✅  ALL CRITICAL TESTS PASSED!
+```
+
+### Individual Test Commands
+
+You can also run specific test suites:
+
+```bash
+# Backend unit tests only
+cd backend && go test ./...
+
+# Native gRPC E2E test only
+./e2e_test.sh
+
+# Browser E2E test only (requires Node.js + Puppeteer)
+npm install puppeteer
+node e2e_browser_test.js
 ```
 
 ### Quick Verification

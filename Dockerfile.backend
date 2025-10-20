@@ -36,6 +36,9 @@ COPY --from=builder /app/server .
 COPY e2e_test.sh .
 COPY assets ./assets
 
+# Copy proto files for grpcurl
+COPY proto ./proto
+
 # Expose the gRPC port
 EXPOSE 8080
 

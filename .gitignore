@@ -1,0 +1,14 @@
+# Temporary test output files
+test_output_*.log
+test_results_*.txt
+test_run_*.txt
+*_test_output.txt
+*.png
+
+# Debug files
+GRPC_WEB_FRAME_FILE_*
+PROTO_BIN_FILE_*
+UPLOAD_SNAPSHOT_PROTO_TEXT_FILE_*
+
+# Node modules
+node_modules/
